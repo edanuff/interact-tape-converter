@@ -12,7 +12,6 @@ import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import OpenInBrowserIcon from "@material-ui/icons/OpenInBrowser";
-import SaveAltIcon from "@material-ui/icons/SaveAlt";
 import Divider from "@material-ui/core/Divider";
 import Grid from "@material-ui/core/Grid";
 
@@ -23,7 +22,6 @@ import {
 } from "./components/TapeFile.js";
 
 import FileUploadButton from "./components/FileUploadButton";
-import FileDownloadButton from "./components/FileDownloadButton";
 import HelpCard from "./components/HelpCard";
 import FileUploadMenuItem from "./components/FileUploadMenuItem";
 import { showSnackbar } from "./components/AppSnackbar";
@@ -69,14 +67,6 @@ export default function App() {
 		loadArchive(arrayBuffer);
 	};
 
-	const handleDownloadTapeAsWav = () => {
-		console.log("App.handleDownloadTapeAsWav");
-	};
-
-	const handleDownloadTapeAsK7 = () => {
-		console.log("App.handleDownloadTapeAsK7");
-	};
-
 	return (
 		<div className={classes.root}>
 			<AppBar position="static">
@@ -109,7 +99,7 @@ export default function App() {
 							<ListItemIcon>
 								<OpenInBrowserIcon fontSize="small" />
 							</ListItemIcon>
-							Open Tape From Audio File…
+							Convert Tape From Audio File To .K7 File…
 						</FileUploadMenuItem>
 						<FileUploadMenuItem
 							onClick={handleActionMenuClose}
@@ -119,30 +109,8 @@ export default function App() {
 							<ListItemIcon>
 								<OpenInBrowserIcon fontSize="small" />
 							</ListItemIcon>
-							Open Tape From .K7 or .CIN File…
+							Convert Tape From .K7 or .CIN to .WAV File…
 						</FileUploadMenuItem>
-						<MenuItem
-							onClick={() => {
-								handleActionMenuClose();
-								handleDownloadTapeAsWav();
-							}}
-						>
-							<ListItemIcon>
-								<SaveAltIcon fontSize="small" />
-							</ListItemIcon>
-							Save Tape As .WAV File…
-						</MenuItem>
-						<MenuItem
-							onClick={() => {
-								handleActionMenuClose();
-								handleDownloadTapeAsK7();
-							}}
-						>
-							<ListItemIcon>
-								<SaveAltIcon fontSize="small" />
-							</ListItemIcon>
-							Save Tape As .K7 File…
-						</MenuItem>
 						<Divider />
 						<MenuItem
 							onClick={(e) => {
@@ -163,26 +131,18 @@ export default function App() {
 					<Grid item>
 						<Box my={4}>
 							<FileUploadButton
-								label="Open Tape Audio"
+								label="Convert Tape Audio File To .K7 Tape Archive"
 								accept="audio/*"
 								onBuffer={handleUploadTapeAsWav}
 							/>
 							<FileUploadButton
-								label="Open Tape .K7 or .CIN"
+								label="Convert .K7 or .CIN Tape Archive To .WAV File"
 								accept="*.cin,*.k7"
 								onBuffer={handleUploadTapeAsK7}
 							/>
-							<FileDownloadButton
-								label="Save As .K7"
-								onSave={handleDownloadTapeAsK7}
-							/>
-							<FileDownloadButton
-								label="Save As .WAV"
-								onSave={handleDownloadTapeAsWav}
-							/>
 						</Box>
 						<Box my={4}>
-							<div className={classes.file_info_box}>
+							<div id="file_info_box" className={classes.file_info_box}>
 								No tape file loaded...
 							</div>
 						</Box>
