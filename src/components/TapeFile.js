@@ -33,7 +33,7 @@ function loadTape(arrayBuffer) {
         var data = audioBuffer.getChannelData(0);
 
 		audio_worker.onmessage = function(e) {
-			console.log('Message received from audio worker');
+			//console.log('Message received from audio worker');
 			if ("tape-audio-worker:result" === e.data[0]) {
 				var blob = new Blob([e.data[1]], { type: "audio/wav" });
 				FileSaver.saveAs(blob, "export.wav");
@@ -58,7 +58,7 @@ function loadArchive(arrayBuffer) {
 	archive_worker.terminate();
 	archive_worker = new Worker('/workers/TapeArchiveWorker.js');
 	archive_worker.onmessage = function(e) {
-		console.log('Message received from archive worker');
+		//console.log('Message received from archive worker');
 
 		if ("tape-archive-worker:result" === e.data[0]) {
 			console.log('Processing result');

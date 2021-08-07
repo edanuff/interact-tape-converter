@@ -201,7 +201,7 @@ function ReadFirst(cycles, info) {
         throw new ParseException("Cycle too long", info);
     }
     // in case not a gap, then not stop
-    if (cycle.length < info.max_gap) {
+    if (cycle.length < info.min_gap) {
         // not a gap, get rest of byte
         info.pos = i - 1;
         return ReadByte(cycles, info);
@@ -233,6 +233,7 @@ function ReadRecord(cycles, info) {
     if (info.stop) return info;
     var record_length = info.byte;
     if (record_length == 0) record_length = 256;
+    writelog("Reading record of " + record_length + " bytes");
     for (var i = 0; i < record_length; i++) {
         ReadByte(cycles, info);
     }
@@ -295,7 +296,7 @@ onmessage = function(e) {
     var info = FindGap(cycles);
 
     if (info.avg_gap_length == 0) {
-        writelog('No header found, tape is not recongnizable');
+        writelog('No header found, tape is not recognizable');
         return;
     }
 
@@ -308,12 +309,13 @@ onmessage = function(e) {
             ReadRecord(cycles, info);
         }
     }
-    catch (e) {
-        if (e instanceof ParseException) {
-            writelog('Error while parsing tape: ' + e);
+    catch (ex) {
+        if (ex instanceof ParseException) {
+            writelog("Error while parsing tape: " + ex.message);
+            if (ex.info.cycle) writelog("Check near sample " + ex.info.cycle.pos + " in audio file for bad wave shapes");
         }
         else {
-            throw e;
+            throw ex;
         }
     }
 
@@ -323,7 +325,7 @@ onmessage = function(e) {
   
     var byte_array = Uint8Array.from(info.bytes);
 
-    var histGenerator = d3.bin().domain([10,100]).thresholds([0, info.min_zero, info.max_zero, info.max_one, info.avg_gap_length * 1.1, info.avg_gap_length * 1.5]);  
+    var histGenerator = d3.bin().domain([10,100]).thresholds([0, info.min_zero, info.max_zero, info.max_one, info.max_gap, info.max_gap * 1.5]);  
     //var blocks = [];
     var bins = histGenerator(cycles);
     bins.sort(function (a, b) {
