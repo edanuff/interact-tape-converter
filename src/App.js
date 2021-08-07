@@ -42,7 +42,9 @@ const useStyles = makeStyles((theme) => ({
 		textAlign: 'left',
 		paddingTop: '10px',
 		paddingLeft: '10px',
-		minHeight: 200
+		overflowY: "scroll",
+		height: 300,
+		minHeight: 300
 	},
 }));
 

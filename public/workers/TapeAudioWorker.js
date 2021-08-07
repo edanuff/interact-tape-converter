@@ -2,58 +2,68 @@
 importScripts("https://cdn.jsdelivr.net/npm/d3-array@3");
 importScripts("/workers/smoothed_z_score.js");
 
-function NormalizeData(data) {
-    for (var i = 0; i < data.length; i++) {
-        var sample = data[i];
-        //if (Math.abs(sample) < 0.3) sample = 0.0;
-        if (sample > 0) sample = 1.0;
-        if (sample < 0) sample = -1.0; 
-        data[i] = sample;
-    }
+function ParseInfo() {
+    this.avg_gap_length = 0;
+    this.min_zero = 0;
+    this.max_zero = 0;
+    this.min_one = 0;
+    this.max_one = 0;
+    this.min_gap = 0;
+    this.max_gap = 0;
+    this.pos = 0;
+    this.cycle = null;
+    this.error = false;
+    this.stop = false;
+    this.byte = 0;
+    this.bytes = [];
 }
 
-function CleanData(data) {
-    data[0] = 0;
-    data[1] = 0;
-    data[data.length - 2] = 0;
-    data[data.length - 1] = 0;
-    for (var i = 2; i < data.length - 2; i++) {
-        var s = data[i];
-        var prev2 = data[i-2];
-        var prev = data[i-1];
-        var next = data[i+1];
-        var next2 = data[i+2];
+function ParseException(message, info) {
+    this.message = message;
+    this.name = 'ParseException';
+    info.error = true;
+    this.info = info;
+}
+  
+ParseException.prototype.toString = function() {
+    return `${this.name}: "${this.message}"`;
+}
+  
+function CleanPeaks(peaks) {
+    peaks[0] = 0;
+    peaks[1] = 0;
+    peaks[peaks.length - 2] = 0;
+    peaks[peaks.length - 1] = 0;
+    for (var i = 2; i < peaks.length - 2; i++) {
+        var s = peaks[i];
+        var prev2 = peaks[i-2];
+        var prev = peaks[i-1];
+        var next = peaks[i+1];
+        var next2 = peaks[i+2];
         if ((prev == next) && (s != prev)) {
-            data[i] = prev;
+            peaks[i] = prev;
         }
         else if ((s != 0) && (s != prev) && (s != next) && ((prev == 0) || (next == 0))) {
-            data[i] = 0;
+            peaks[i] = 0;
         }
         else if ((s == next) && (s != prev) && (s != next2)) {
-            data[i] = 0;           
+            peaks[i] = 0;           
         }
     }
 }
 
-function ValidCycle(data, pos) {
-    for (var i = 0; i < 10; i++) {
-        if (data[i] !== 1.0) return false;
-    }
-    return true;
-}
-
-function AnalyzeCycles(data, histogram) {
+function AnalyzeCycles(peaks) {
     var last_sample = 0;
     var pos = 0;
     var last_cycle = 0;
     var cycles = [];
-    while (pos < data.length) {
-        var sample = data[pos];
+    while (pos < peaks.length) {
+        var sample = peaks[pos];
         if ((sample > 0) && (last_sample < 0)) {
             //cycle_start
             var cycle_length = pos - last_cycle;
             last_cycle = pos;
-            cycles.push(cycle_length);
+            cycles.push({length: cycle_length, pos: pos});
         }
         if (sample !== 0) last_sample = sample;
         pos++;
@@ -61,45 +71,172 @@ function AnalyzeCycles(data, histogram) {
     return cycles;
 }
 
-function FindSyncroLength(cycles) {
-    var last_cycle = 0;
+function FindGap(cycles, info) {
+    info = info || new ParseInfo();
+
     var cycle_count = 0;
     var cycle_max = 0;
     var cycle_min = Number.POSITIVE_INFINITY;
     var i = 0;
+    var last_cycle = {length: 0, pos: 0};
     while (i < cycles.length) {
         var cycle = cycles[i];
-        if (Math.abs(cycle - last_cycle) < 5) {
+        if (Math.abs(cycle.length - last_cycle.length) < 5) {
             cycle_count++;
-            if (cycle > cycle_max) cycle_max = cycle;
-            if (cycle < cycle_min) cycle_min = cycle;
+            if (cycle.length > cycle_max) cycle_max = cycle.length;
+            if (cycle.length < cycle_min) cycle_min = cycle.length;
         }
         else {
             cycle_count = 0;
             cycle_max = 0;
             cycle_min = Number.POSITIVE_INFINITY;
         }
-        if (cycle_count > 100) return Math.floor(cycle_min + ((cycle_max - cycle_min)/ 2));
+        if (cycle_count > 100) {
+            info.pos = i;
+            var avg_gap_length = Math.floor(cycle_min + ((cycle_max - cycle_min)/ 2));
+            info.avg_gap_length = avg_gap_length;
+            info.min_zero = Math.floor(avg_gap_length * .2);  //.2
+            info.max_zero = Math.floor(avg_gap_length * .45); //.45
+            info.min_one = Math.floor(avg_gap_length * .48); //.75
+            info.max_one = Math.floor(avg_gap_length * .74); //.75
+            info.min_gap = Math.floor(avg_gap_length * .77); //.75
+            info.max_gap = Math.floor(avg_gap_length * 1.2); //.75
+            return info;
+        }
         last_cycle = cycle;
         i++;
     }
-    return 0;
+    info.pos = i;
+    return info;
 }
 
-function NextCycle(data) {
-    var cycle_count = 0;
-    var last_sample = 0;
-    var pos = 0;
-    while (pos < data.length) {
-        var sample = data[pos];
-        if ((sample > 0) && (last_sample < 0)) {
-            //cycle_start
-            cycle_count++;
+function SkipGap(cycles, info) {
+    info = info || new ParseInfo();
+    var i = 0;
+    while (i < cycles.length) {
+        var cycle = cycles[i];
+        if ((cycle.length >= info.min_zero) &&  (cycle.length < info.max_one)) {
+            info.pos = i - 1;
+            return info;
         }
-        if (sample !== 0) last_sample = sample;
-        pos++;
+        else if ((cycle.length < info.min_zero) ||  (cycle.length > info.max_gap)) {
+            info.pos = i;
+            info.cycle = cycle;
+            throw new ParseException("Invalid cycle found while skipping gap", info);
+        }
+        i++;
     }
-    return cycle_count;
+    return info;
+}
+
+function ReadByte(cycles, info) {
+    info = info || new ParseInfo();
+
+    if (info.pos >= (cycles.length - 8)) {
+        throw new ParseException("End of file reached unexpectedly", info);
+    }
+    var b = 0;
+    for (var i = 0; i < 8; i++) {
+        var cycle = cycles[info.pos];
+        if ((cycle.length >= info.min_zero) &&  (cycle.length < info.max_one)) {
+            var bit = 1;
+            if ((cycle.length >= info.min_zero) && (cycle.length < info.max_zero)) {
+                bit = 0;
+            }
+            b = b | (bit << i);
+        }
+        else {
+            info.cycle = cycle;
+            throw new ParseException("Invalid cycle found while reading bit " + i + " of byte", info);
+        }
+        info.pos++;
+   }
+   info.byte = b;
+   info.bytes.push(b);
+   return b;
+}
+
+function ReadFirst(cycles, info) {
+    info = info || new ParseInfo();
+    var i = info.pos;
+    var last_cycle = {length: 0, pos: 0};
+    var cycle = cycles[i];
+    RFIRST: while (i < cycles.length) {
+        // Look for one good gap
+        cycle = cycles[i];
+        i++;
+        if (cycle.length < info.min_gap) {
+            // too small
+            continue RFIRST;
+        };
+        RFRST1: while (i < cycles.length) {
+            cycle = cycles[i];
+            i++;
+            if (cycle.length > info.max_gap) {
+                // too long to be a gap
+                continue RFIRST;
+            }
+            if (cycle.length > info.min_gap) {
+                // it's a gap
+                continue RFRST1;
+            }
+            break RFIRST;
+        }
+    }
+    i--;
+    //CHKSTP
+    // see if a one
+    if (cycle.length >= info.min_one) {
+        // it is, get rest of byte
+        info.pos = i;
+        return ReadByte(cycles, info);
+    }
+    i++;
+    cycle = cycles[i]; //next bit
+    // see if longer than gap
+    if (cycle.length > info.max_gap) {
+        // too long to be anything valid
+        info.pos = i;
+        info.cycle = cycle;
+        throw new ParseException("Cycle too long", info);
+    }
+    // in case not a gap, then not stop
+    if (cycle.length < info.max_gap) {
+        // not a gap, get rest of byte
+        info.pos = i - 1;
+        return ReadByte(cycles, info);
+    }
+    i++;
+    cycle = cycles[i];
+    // has to be a zero here, if not then error
+    if (cycle.length >= info.min_one) {
+        info.pos = i;
+        info.cycle = cycle;
+        throw new ParseException("Invalid bit found, expected 0", info);
+}
+    i++;
+    cycle = cycles[i]; // better be a gap now
+    if ((cycle.length < info.min_gap) || (cycle.length > info.max_gap)) {
+        // too short or too long, error
+        info.pos = i;
+        info.cycle = cycle;
+        throw new ParseException("Invalid cycle found, expected gap", info);
+}
+    // is a gap, so stop id found
+    info.stop = true;
+    return info;
+}
+
+function ReadRecord(cycles, info) {
+    info = info || new ParseInfo();
+    ReadFirst(cycles, info);
+    if (info.stop) return info;
+    var record_length = info.byte;
+    if (record_length == 0) record_length = 256;
+    for (var i = 0; i < record_length; i++) {
+        ReadByte(cycles, info);
+    }
+    return info;
 }
 
 function writeString(view, offset, string) {
@@ -129,8 +266,8 @@ onmessage = function(e) {
     data = peaks;
     writelog("done!");
 
-    CleanData(data);
-    
+    CleanPeaks(data);
+
     var new_wav_buffer = new ArrayBuffer(44 + (data.length * 2));
 
     var view = new DataView(new_wav_buffer);
@@ -153,68 +290,40 @@ onmessage = function(e) {
         view.setInt16(44 + (i * 2), b, true);
     }
 
-    var cycles = AnalyzeCycles(data);
+    var cycles = AnalyzeCycles(peaks);
 
-    var gap_length = FindSyncroLength(cycles);
-    writelog('Gap length found: ' + gap_length);
+    var info = FindGap(cycles);
 
-    if (gap_length == 0) {
+    if (info.avg_gap_length == 0) {
         writelog('No header found, tape is not recongnizable');
         return;
     }
 
-    var zero_length_min = Math.floor(gap_length * .2);  //.2
-    var zero_length_max = Math.floor(gap_length * .45); //.45
-    var one_length_max = Math.floor(gap_length * .75); //.75
-    writelog('Zero length: ' + zero_length_max);
-    writelog('One length: ' + one_length_max);
+    writelog('Gap length found: ' + info.avg_gap_length);
+    writelog('Zero length: ' + info.max_zero);
+    writelog('One length: ' + info.max_one);
   
-    var byte_bits = [];
-    var bytes = [];
-    var errors = 0;
-    var cycle_pos = 0;
-    var good_bytes = 0;
-    cycles.forEach((cycle, index, array) => {
-        if ((cycle >= zero_length_min) &&  (cycle < one_length_max)) {
-            if ((cycle >= zero_length_min) && (cycle < zero_length_max)) {
-                byte_bits.push(0);
-            }
-            else {
-                byte_bits.push(1);
-            }
-            if (byte_bits.length == 8) {
-                var b = 0;
-                for (var i = 0; i < 8; i++) {
-                    b = b | (byte_bits[i] << i);
-                }
-                bytes.push(b);
-                if (bytes.length == 1386) debugger;
-                byte_bits = [];
-                good_bytes++;
-            }
+    try {
+        while (!info.stop) {
+            ReadRecord(cycles, info);
+        }
+    }
+    catch (e) {
+        if (e instanceof ParseException) {
+            writelog('Error while parsing tape: ' + e);
         }
         else {
-            if (byte_bits.length > 0) {
-                if (errors < 25) {
-                    writelog('Error after ' + byte_bits.length + " bits! Cycle of length " + cycle + " found at position " + cycle_pos + " after " + good_bytes + " good bytes");
-                }
-                else if (errors == 25) {
-                    writelog('Too many errors found, stopping error reporting, check source audio file');
-                }
-                errors++;
-                good_bytes = 0;
-            }
-            byte_bits = [];
+            throw e;
         }
-        cycle_pos += cycle;
-    } );
-    writelog('Cycles found: ' + cycles.length);
-    writelog('Bytes found: ' + bytes.length);
-    writelog('Errors found: ' + errors);
-  
-    var byte_array = Uint8Array.from(bytes);
+    }
 
-    var histGenerator = d3.bin().domain([10,100]).thresholds([0, zero_length_min, zero_length_max, one_length_max, gap_length * 1.1, gap_length * 1.5]);  
+    writelog('Cycles found: ' + cycles.length);
+    writelog('Bytes found: ' + info.bytes.length);
+    //writelog('Errors found: ' + errors);
+  
+    var byte_array = Uint8Array.from(info.bytes);
+
+    var histGenerator = d3.bin().domain([10,100]).thresholds([0, info.min_zero, info.max_zero, info.max_one, info.avg_gap_length * 1.1, info.avg_gap_length * 1.5]);  
     //var blocks = [];
     var bins = histGenerator(cycles);
     bins.sort(function (a, b) {
