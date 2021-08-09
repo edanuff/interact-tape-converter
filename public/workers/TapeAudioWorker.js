@@ -16,6 +16,9 @@ function ParseInfo() {
     this.stop = false;
     this.byte = 0;
     this.bytes = [];
+    this.record_count = 0;
+    this.record_start = 0;
+    this.record_index = 0;
 }
 
 function ParseException(message, info) {
@@ -50,6 +53,12 @@ function CleanPeaks(peaks) {
             peaks[i] = 0;           
         }
     }
+    for (var i = 1; i < peaks.length; i++) {
+        var s = peaks[i];
+        if (s == 0) {
+            peaks[i] = peaks[i-1];      
+        }
+    }
 }
 
 function AnalyzeCycles(peaks) {
@@ -77,30 +86,33 @@ function FindGap(cycles, info) {
     var cycle_count = 0;
     var cycle_max = 0;
     var cycle_min = Number.POSITIVE_INFINITY;
+    var cycle_mid = 0;
     var i = 0;
     var last_cycle = {length: 0, pos: 0};
     while (i < cycles.length) {
         var cycle = cycles[i];
-        if (Math.abs(cycle.length - last_cycle.length) < 5) {
+        if ((cycle.length > 50) && (cycle.length < 100)) {
             cycle_count++;
             if (cycle.length > cycle_max) cycle_max = cycle.length;
             if (cycle.length < cycle_min) cycle_min = cycle.length;
+            cycle_mid = cycle_min + Math.floor((cycle_max - cycle_min) / 2);
         }
         else {
             cycle_count = 0;
             cycle_max = 0;
             cycle_min = Number.POSITIVE_INFINITY;
+            cycle_mid = 0;
         }
         if (cycle_count > 100) {
             info.pos = i;
             var avg_gap_length = Math.floor(cycle_min + ((cycle_max - cycle_min)/ 2));
             info.avg_gap_length = avg_gap_length;
-            info.min_zero = Math.floor(avg_gap_length * .2);  //.2
-            info.max_zero = Math.floor(avg_gap_length * .45); //.45
-            info.min_one = Math.floor(avg_gap_length * .48); //.75
-            info.max_one = Math.floor(avg_gap_length * .74); //.75
             info.min_gap = Math.floor(avg_gap_length * .77); //.75
             info.max_gap = Math.floor(avg_gap_length * 1.2); //.75
+            info.min_one = Math.floor(avg_gap_length * .48); //.75
+            info.max_one = info.min_gap - 1; //.75
+            info.min_zero = Math.floor(avg_gap_length * .2);  //.2
+            info.max_zero = info.min_one - 1; //.45
             return info;
         }
         last_cycle = cycle;
@@ -133,11 +145,13 @@ function ReadByte(cycles, info) {
     info = info || new ParseInfo();
 
     if (info.pos >= (cycles.length - 8)) {
+        info.cycle = cycles[info.pos];
         throw new ParseException("End of file reached unexpectedly", info);
     }
     var b = 0;
     for (var i = 0; i < 8; i++) {
         var cycle = cycles[info.pos];
+        info.cycle = cycle;
         if ((cycle.length >= info.min_zero) &&  (cycle.length < info.max_one)) {
             var bit = 1;
             if ((cycle.length >= info.min_zero) && (cycle.length < info.max_zero)) {
@@ -147,10 +161,15 @@ function ReadByte(cycles, info) {
         }
         else {
             info.cycle = cycle;
-            throw new ParseException("Invalid cycle found while reading bit " + i + " of byte", info);
+            var err_str = "Invalid cycle length " + cycle.length + " found while reading bit " + i + " of byte " + info.record_index + " of record " + (info.record_count + 1);
+            if ((cycle.length >= info.min_gap) && (cycle.length <= info.max_gap)) {
+                err_str = "Unexpected gap found while reading bit " + i + " of byte " + info.record_index + " of record " + (info.record_count + 1);
+            }
+            throw new ParseException(err_str, info);
         }
         info.pos++;
    }
+   info.record_index++;
    info.byte = b;
    info.bytes.push(b);
    return b;
@@ -189,6 +208,7 @@ function ReadFirst(cycles, info) {
     if (cycle.length >= info.min_one) {
         // it is, get rest of byte
         info.pos = i;
+        info.record_start = info.pos;
         return ReadByte(cycles, info);
     }
     i++;
@@ -204,6 +224,7 @@ function ReadFirst(cycles, info) {
     if (cycle.length < info.min_gap) {
         // not a gap, get rest of byte
         info.pos = i - 1;
+        info.record_start = info.pos;
         return ReadByte(cycles, info);
     }
     i++;
@@ -213,7 +234,7 @@ function ReadFirst(cycles, info) {
         info.pos = i;
         info.cycle = cycle;
         throw new ParseException("Invalid bit found, expected 0", info);
-}
+    }
     i++;
     cycle = cycles[i]; // better be a gap now
     if ((cycle.length < info.min_gap) || (cycle.length > info.max_gap)) {
@@ -221,22 +242,26 @@ function ReadFirst(cycles, info) {
         info.pos = i;
         info.cycle = cycle;
         throw new ParseException("Invalid cycle found, expected gap", info);
-}
+    }
     // is a gap, so stop id found
     info.stop = true;
+    info.pos = i;
+    info.cycle = cycle;
     return info;
 }
 
 function ReadRecord(cycles, info) {
     info = info || new ParseInfo();
+    info.record_index = 0;
     ReadFirst(cycles, info);
     if (info.stop) return info;
     var record_length = info.byte;
     if (record_length == 0) record_length = 256;
-    writelog("Reading record of " + record_length + " bytes");
+    writelog("Reading record #" + (info.record_count + 1) + " of " + record_length + " bytes starting at sample " + info.cycle.pos);
     for (var i = 0; i < record_length; i++) {
         ReadByte(cycles, info);
     }
+    info.record_count++;
     return info;
 }
 
@@ -300,9 +325,10 @@ onmessage = function(e) {
         return;
     }
 
-    writelog('Gap length found: ' + info.avg_gap_length);
-    writelog('Zero length: ' + info.max_zero);
-    writelog('One length: ' + info.max_one);
+    writelog('Average Gap length found: ' + info.avg_gap_length);
+    writelog('Gap length: ' + info.min_gap + " to " + info.max_gap);
+    writelog('Zero length: ' + info.min_zero + " to " + info.max_zero);
+    writelog('One length: ' + info.min_one + " to " + info.max_one);
   
     try {
         while (!info.stop) {
@@ -320,6 +346,7 @@ onmessage = function(e) {
     }
 
     writelog('Cycles found: ' + cycles.length);
+    writelog('Records found: ' + (info.record_count + 1));
     writelog('Bytes found: ' + info.bytes.length);
     //writelog('Errors found: ' + errors);
   
