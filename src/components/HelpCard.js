@@ -41,7 +41,7 @@ export default function HelpCard() {
 					<ul>
 						<li>
 							This tool is designed for reading and writing <a href="https://en.wikipedia.org/wiki/Interact_Home_Computer">Interact</a> or
-							<a href="https://www.old-computers.com/MUSEUM/computer.asp?c=151&st=1">Victor</a>/<a href="https://www.old-computers.com/museum/computer.asp?c=427">Hector</a> cassettes
+							&nbsp;<a href="https://www.old-computers.com/MUSEUM/computer.asp?c=151&st=1">Victor</a>/<a href="https://www.old-computers.com/museum/computer.asp?c=427">Hector</a> cassettes
 							in digitized audio files or archived tape
 							formats so that you can either use these tapes with emulators
 							or with real Interact or Hector machines.
