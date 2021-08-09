@@ -5,22 +5,24 @@ import uniqueId from "lodash/uniqueId";
 
 export default function FileUploadMenuItem(props) {
 	let fileReader = null;
+	let filename = null;
 
 	const [id] = useState(uniqueId("file-prefix-"));
 
 	const handleFileRead = (e) => {
 		const content = fileReader.result;
-		if (props.onRead) props.onRead(content);
+		if (props.onRead) props.onRead(content, filename);
 	};
 
 	const handleFileBuffer = (e) => {
 		const content = fileReader.result;
-		if (props.onBuffer) props.onBuffer(content);
+		if (props.onBuffer) props.onBuffer(content, filename);
 	};
 
 	function handleChange(e) {
 		const { target } = e;
 		if (target.value.length > 0) {
+			filename = target.files[0].name;
 			if (props.onFile) {
 				props.onFile(target.files[0]);
 			} else {

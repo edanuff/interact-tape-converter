@@ -23,7 +23,8 @@ function printInfoLog(str) {
 	document.getElementById("file_info_box").innerHTML = info;
 }
 
-function loadTape(arrayBuffer) {
+function loadTape(arrayBuffer, filename) {
+	filename = filename.substring(0, filename.lastIndexOf('.')) || filename;
 	clearInfoLog();
 	audio_worker.terminate();
 	audio_worker = new Worker('/workers/TapeAudioWorker.js');
@@ -35,11 +36,15 @@ function loadTape(arrayBuffer) {
 		audio_worker.onmessage = function(e) {
 			//console.log('Message received from audio worker');
 			if ("tape-audio-worker:result" === e.data[0]) {
-				var blob = new Blob([e.data[1]], { type: "audio/wav" });
-				FileSaver.saveAs(blob, "export.wav");
+				var export_wave = e.data[1];
+				if (export_wave != null) {
+					var blob = new Blob([export_wave], { type: "audio/wav" });
+					FileSaver.saveAs(blob, filename + "_cleaned.wav");
+				}
 
-				blob = new Blob([e.data[2]], { type: "application/octet-stream" });
-				FileSaver.saveAs(blob, "export.k7");
+				var export_k7 = e.data[2];
+				blob = new Blob([export_k7], { type: "application/octet-stream" });
+				FileSaver.saveAs(blob, filename + ".k7");
 			}
 			else if ("tape-audio-worker:println" === e.data[0]) {
 				printLnInfoLog(e.data[1]);
@@ -48,12 +53,13 @@ function loadTape(arrayBuffer) {
 				printInfoLog(e.data[1]);
 			}
 		}
-		audio_worker.postMessage(["parse", data.buffer], [data.buffer]);
+		audio_worker.postMessage(["parse", data.buffer, true], [data.buffer]);
 	});
 
 }
 
-function loadArchive(arrayBuffer) {
+function loadArchive(arrayBuffer, filename) {
+	filename = filename.substring(0, filename.lastIndexOf('.')) || filename;
 	clearInfoLog();
 	archive_worker.terminate();
 	archive_worker = new Worker('/workers/TapeArchiveWorker.js');
@@ -69,7 +75,7 @@ function loadArchive(arrayBuffer) {
 			} );
 			document.getElementById("file_info_box").innerHTML = info;
 			var blob = new Blob([e.data[1]], { type: "audio/wav" });
-			FileSaver.saveAs(blob, "export.wav");
+			FileSaver.saveAs(blob, filename + ".wav");
 		}
 		else if ("tape-archive-worker:println" === e.data[0]) {
 			printLnInfoLog(e.data[1]);

@@ -294,26 +294,30 @@ onmessage = function(e) {
 
     CleanPeaks(data);
 
-    var new_wav_buffer = new ArrayBuffer(44 + (data.length * 2));
+    var new_wav_buffer = null;
+    
+    if (e.data[2]) {
+        new_wav_buffer = new ArrayBuffer(44 + (data.length * 2));
 
-    var view = new DataView(new_wav_buffer);
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 32 + data.length * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, 44100, true);
-    view.setUint32(28, 44100 * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, data.length * 2, true);
-    for (var i = 0; i < data.length; i++) {
-        var s = Math.max(-1, Math.min(1, data[i]));
-        var b = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        view.setInt16(44 + (i * 2), b, true);
+        var view = new DataView(new_wav_buffer);
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 32 + data.length * 2, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, 44100, true);
+        view.setUint32(28, 44100 * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, data.length * 2, true);
+        for (var i = 0; i < data.length; i++) {
+            var s = Math.max(-1, Math.min(1, data[i]));
+            var b = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            view.setInt16(44 + (i * 2), b, true);
+        }
     }
 
     var cycles = AnalyzeCycles(peaks);

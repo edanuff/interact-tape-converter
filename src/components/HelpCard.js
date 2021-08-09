@@ -54,10 +54,10 @@ export default function HelpCard() {
 						<li>
 							Tape archive files are supported in the .K7 and .CIN formats that 
 							are used by many Interact and Hector emulators
-							such as MAME/MESS, DCHector, and Virtual Interact.
+							such as MAME/MESS, <a href="http://dchector.free.fr/index.html">DCHector</a>, and 
+							&nbsp;<a href="http://www.geocities.ws/emucompboy/">Virtual Interact</a>.
 						</li>
 
-						<li>There are more features under the action (⋮) menu!</li>
 					</ul>
 
 				</Typography>

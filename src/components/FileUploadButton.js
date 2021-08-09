@@ -5,20 +5,22 @@ import OpenInBrowserIcon from "@material-ui/icons/OpenInBrowser";
 
 function FileUploadButton(props) {
 	let fileReader = null;
+	let filename = null;
 
 	const handleFileRead = (e) => {
 		const content = fileReader.result;
-		if (props.onRead) props.onRead(content);
+		if (props.onRead) props.onRead(content, filename);
 	};
 
 	const handleFileBuffer = (e) => {
 		const content = fileReader.result;
-		if (props.onBuffer) props.onBuffer(content);
+		if (props.onBuffer) props.onBuffer(content, filename);
 	};
 
 	function handleChange(e) {
 		const { target } = e;
 		if (target.value.length > 0) {
+			filename = target.files[0].name;
 			if (props.onFile) {
 				props.onFile(target.files[0]);
 			} else {

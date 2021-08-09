@@ -61,12 +61,12 @@ export default function App() {
 		console.log("App.handleActionMenuClose");
 	};
 
-	const handleUploadTapeAsWav = (arrayBuffer) => {
-		loadTape(arrayBuffer);
+	const handleUploadTapeAsWav = (arrayBuffer, filename) => {
+		loadTape(arrayBuffer, filename);
 	};
 
-	const handleUploadTapeAsK7 = (arrayBuffer) => {
-		loadArchive(arrayBuffer);
+	const handleUploadTapeAsK7 = (arrayBuffer, filename) => {
+		loadArchive(arrayBuffer, filename);
 	};
 
 	return (
