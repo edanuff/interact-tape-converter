@@ -100,14 +100,30 @@
 				</li>
 
 				<li>
-					Tapes can be loaded from any audio format but 44khz mono is
-					recommended when digitizing real tapes.
-				</li>
-
-				<li>
 					.K7 and .CIN files are used by many Interact and Hector emulators
 					such as MAME/MESS, <a href="http://dchector.free.fr/index.html">DCHector</a>, and 
 					<a href="http://www.geocities.ws/emucompboy/">Virtual Interact</a>.
+				</li>
+
+				<li>
+					Audio files are converted automatically to 44khz but for best results your original
+					recording should be at 44khz.
+				</li>
+
+				<li>
+					The Interact and it&rsquo;s descendents (Victor Lambda, Hector) recorded tapes by &ldquo;<a href="https://en.wikipedia.org/wiki/Bit_banging">bit-banging</a>&rdquo; square waves of various
+					durations to the cassette tape.  The analog process of recording these to tape turns them
+					into rounded sine waves.  The Interact records three types of values to tape - zeroes, ones,
+					and gaps.  Each of these values is simply a different duration for the waveform cycle.
+					Tapes are read back by measuring the distance between peaks in the waveform.  Many computers
+					in the late 70&rsquo;s used similar mechanisms for storing data on tape.
+				</li>
+
+				<li>
+					If a tape .wav file is unable to be converted, an error message with the sample position
+					is provided.  If you want to recover from this error, you will want to open your audio file
+					in Audacity and look at the tape around that position.  Typically there will be a malformed
+					waveform somewhere before the error that is throwing off the conversion.
 				</li>
 			</ul>
 		</div>
