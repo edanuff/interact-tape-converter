@@ -1,6 +1,7 @@
 // Based on MAME/MESS hect_tap.cpp by JJ Stacino
 // See https://github.com/mamedev/mame/blob/master/src/lib/formats/hect_tap.cpp
 //
+// Uses the terms flux, gap, zero, and one from the Interact documentation
 
 const SMPLO = -32768;
 const SMPHI = 32767;
@@ -72,10 +73,10 @@ function handle_tap(buffer, casdata, blocks)
 		var block = {};
 
 		if (previous_block === 0xFE)
-				/* Starting a block with 150 cycle of gap to let time to Hector to do the job ! */
+				/* Starting a block with 150 cycles of gap to let fill command complete ! */
 				sample_count += tape_gap( buffer, sample_count, 150 );
 		else
-					/* Starting a block with 4 cycle of gap */
+				/* Starting a block with 4 cycles of gap */
 				sample_count += tape_gap( buffer, sample_count, 4 );
 
 		if (data_pos>1)
