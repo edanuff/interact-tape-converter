@@ -26,6 +26,9 @@ pencil tool in Audacity or a similar audio editor to fix waveforms that appear t
 
 <p align="center"><img src="https://user-images.githubusercontent.com/105246/130365204-2e06a02b-133a-42a5-96ff-a2a092bf09cc.png"/></p>
 
+Note: The "Gap" bits are sometimes called "Synchro" bits in different documentation.  The original Interact documentation used the term Gap bits
+so those are used here.
+
 # Behind The Scenes
 
 All of the hard work is done within two web worker scripts that do the audio processing in background threads.
