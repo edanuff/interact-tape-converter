@@ -18,7 +18,8 @@ such as MAME/MESS Interact, [DCHector](http://dchector.free.fr/index.html), and 
 The Interact and it’s descendents (Victor Lambda, Hector) recorded tapes by “bit-banging” square waves of various durations to the cassette tape. 
 The analog process of recording these to tape turns them into rounded sine waves. The Interact records three types of values to tape - zeroes, ones, and gaps. 
 Each of these values is simply a different duration for the waveform cycle. Tapes are read back by measuring the distance between peaks in the waveform. 
-Many computers in the late 70’s used similar mechanisms for storing data on tape. When looking at a wave file, you should see rounded versions of the 
+[Many computers in the late 70’s used similar mechanisms](https://www.pagetable.com/?p=32) for storing data on tape. 
+When looking at a wave file, you should see rounded versions of the 
 following waveforms, representing the appropriate bit types being stored. If a tape does not convert without error, you should first resample the 
 tape at a higher output volume (don't be afraid of clipping when digitizing computer cassettes) and you may need to hand edit waveforms using the 
 pencil tool in Audacity or a similar audio editor to fix waveforms that appear too distorted or have noise in them.
