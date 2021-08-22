@@ -13,6 +13,8 @@ such as MAME/MESS Interact, [DCHector](http://dchector.free.fr/index.html), and 
 
 Adapted from MAME/MESS [hect_tap.cpp](https://github.com/mamedev/mame/blob/master/src/lib/formats/hect_tap.cpp), written by J.J. Stacino.
 
+# How It Works
+
 The Interact and it’s descendents (Victor Lambda, Hector) recorded tapes by “bit-banging” square waves of various durations to the cassette tape. 
 The analog process of recording these to tape turns them into rounded sine waves. The Interact records three types of values to tape - zeroes, ones, and gaps. 
 Each of these values is simply a different duration for the waveform cycle. Tapes are read back by measuring the distance between peaks in the waveform. 
@@ -22,3 +24,10 @@ tape at a higher output volume (don't be afraid of clipping when digitizing comp
 pencil tool in Audacity or a similar audio editor to fix waveforms that appear too distorted or have noise in them.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/105246/130365204-2e06a02b-133a-42a5-96ff-a2a092bf09cc.png"/></p>
+
+# Behind The Scenes
+
+All of the hard work is done within two web worker scripts that do the audio processing in background threads.
+These are in the [public/workers](https://github.com/edanuff/interact-tape-converter/tree/master/public/workers) directory.
+[Z-Score Peak Detection](https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data/) is used 
+to deal with the fact that many digitized old cassette tapes can have a sometimes wildly drifting DC-offset.
