@@ -11,7 +11,7 @@ Tapes can be loaded from any audio format but 44khz mono is recommended when dig
 Tape archive files are supported in the .K7 and .CIN formats that are used by many Interact and Hector emulators
 such as MAME/MESS Interact, [DCHector](http://dchector.free.fr/index.html), and [Virtual Interact](http://www.geocities.ws/emucompboy/) emulators.
 
-Adapted from MAME/MESS [hect_tap.cpp](https://github.com/mamedev/mame/blob/master/src/lib/formats/hect_tap.cpp), written by J.J. Stacino.
+.K7/.CIN to .WAV adapted from MAME/MESS [hect_tap.cpp](https://github.com/mamedev/mame/blob/master/src/lib/formats/hect_tap.cpp), written by J.J. Stacino.
 
 # How It Works
 
